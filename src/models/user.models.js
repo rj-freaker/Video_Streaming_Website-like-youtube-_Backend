@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
-import bcryptjs, { hash } from 'bcryptjs';
-import jsonwebtoken, { JsonWebTokenError } from 'jsonwebtoken';
+import bcryptjs from 'bcryptjs';
+import jsonwebtoken from 'jsonwebtoken';
 
 const userSchema = new mongoose.Schema({
     username: {
@@ -8,19 +8,20 @@ const userSchema = new mongoose.Schema({
         unique: true,
         required: true,
         trim: true,
-        index: true
+        index: true,
+        lowercase: true
     },
     password: {
         type: String,
-        minLength: 8,
-        required: true
+        minLength: [8, 'Minimum length is 8'],
+        required: [true, 'Password is required']
     },
-    fullname: {
+    fullName: {
         type: String,
-        requred: true,
+        required: true,
         trim: true
     },
-    avtar: {
+    avatar: {
         type: String,
         required: true
     },
@@ -34,10 +35,12 @@ const userSchema = new mongoose.Schema({
         trim: true,
         lowercase: true
     },
-    watchHistory: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Video',
-    },
+    watchHistory: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Video',
+        }
+    ],
     refreshToken: {
         type: String
     }
@@ -48,7 +51,7 @@ userSchema.pre('save', async function(next){
 
     if(this.isModified('password')) return next();
 
-    const salt = bcryptjs.getSalt(10);
+    const salt = bcryptjs.genSalt(10);
     const hashPassword = await bcryptjs.hash(this.password, salt);
     this.password = hashPassword;
     next();
@@ -65,7 +68,7 @@ userSchema.methods.generateAccessToken = function(){
                 id: this._id,
                 email: this.email,
                 username: this.username,
-                fullname: this.fullname
+                fullName: this.fullName
             },
             process.env.ACCESS_TOKEN_KEY,
             {
@@ -75,11 +78,11 @@ userSchema.methods.generateAccessToken = function(){
 }
 
 
-userSchema.methods.generateRefresehToken = async function(){
+userSchema.methods.generateRefreshToken = async function(){
     return jsonwebtoken.sign({
         id: this._id,
     },
-    process.env.REFRESH_TKEN_SECRET,
+    process.env.REFRESH_TOKEN_SECRET,
     {expiresIn: process.env.REFRESH_TOKEN_EXPIRY}
     )
 }
